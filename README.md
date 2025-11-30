@@ -42,6 +42,7 @@ Nov 30 11:27:00 AM Worker-3 processed Task 3
 ...
 Nov 30 11:27:01 AM Worker-3 finished.
 Nov 30 11:27:01 AM System completed all tasks.
+
 Notes
 Output files were successfully created in the same folder as the code, containing all tasks processed by each worker.
 The number of workers and tasks can be changed in main by modifying numWorkers and numTasks.
