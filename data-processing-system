@@ -1,0 +1,131 @@
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class Main {
+
+    // Shared queue of tasks
+    private static final TaskQueue taskQueue = new TaskQueue();
+
+    public static void main(String[] args) {
+        log("System Started.");
+
+        // Add tasks to the shared queue
+        for (int i = 1; i <= 15; i++) {
+            taskQueue.addTask("Task " + i);
+        }
+
+        // Create workers
+        Worker w1 = new Worker("Worker-1", taskQueue);
+        Worker w2 = new Worker("Worker-2", taskQueue);
+        Worker w3 = new Worker("Worker-3", taskQueue);
+
+        // Start threads
+        w1.start();
+        w2.start();
+        w3.start();
+
+        // Wait for all threads to complete
+        try {
+            w1.join();
+            w2.join();
+            w3.join();
+        } catch (InterruptedException e) {
+            log("Main thread interrupted.");
+        }
+
+        log("System completed all tasks.");
+    }
+
+    // Custom log function with timestamp
+    public static void log(String message) {
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM dd h:mm:ss a");
+        String timestamp = sdf.format(new Date());
+        System.out.println(timestamp + " " + message);
+    }
+}
+
+// -------------------------------------------------------
+// TASK QUEUE  (Shared Resource)
+// -------------------------------------------------------
+class TaskQueue {
+
+    private final Queue<String> queue = new LinkedList<>();
+
+    // Add task (synchronized)
+    public synchronized void addTask(String task) {
+        queue.add(task);
+    }
+
+    // Get task (synchronized)
+    public synchronized String getTask() throws Exception {
+        if (queue.isEmpty()) {
+            throw new Exception("Queue is empty.");
+        }
+        return queue.poll();
+    }
+
+    public synchronized boolean isEmpty() {
+        return queue.isEmpty();
+    }
+}
+
+// -------------------------------------------------------
+// WORKER THREAD
+// -------------------------------------------------------
+class Worker extends Thread {
+
+    private final String workerName;
+    private final TaskQueue taskQueue;
+
+    public Worker(String name, TaskQueue queue) {
+        this.workerName = name;
+        this.taskQueue = queue;
+    }
+
+    @Override
+    public void run() {
+        Main.log(workerName + " started.");
+
+        try (FileWriter writer = new FileWriter(workerName + "_output.txt")) {
+
+            while (true) {
+                String task;
+
+                // Critical section
+                synchronized (taskQueue) {
+                    if (taskQueue.isEmpty()) {
+                        break;
+                    }
+
+                    try {
+                        task = taskQueue.getTask();
+                    } catch (Exception e) {
+                        Main.log(workerName + " tried to read empty queue.");
+                        break;
+                    }
+                }
+
+                // Simulate work
+                try {
+                    Thread.sleep(400);
+                } catch (InterruptedException e) {
+                    Main.log(workerName + " interrupted.");
+                }
+
+                String result = workerName + " processed " + task;
+                writer.write(result + "\n");
+
+                Main.log(result);
+            }
+
+        } catch (IOException e) {
+            Main.log(workerName + " file error: " + e.getMessage());
+        }
+
+        Main.log(workerName + " finished.");
+    }
+}
